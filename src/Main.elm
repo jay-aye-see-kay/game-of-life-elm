@@ -17,36 +17,45 @@ import Random
 ---- MODEL ----
 
 
+type CellState
+    = Alive
+    | Dead
+
+
 type alias Grid =
-    List (List Bool)
+    List (List CellState)
 
 
 type alias Model =
     { grid : Grid
-    , newBool : Bool
+    , size : ( Int, Int )
     }
 
 
-randomBool : Random.Generator Bool
-randomBool =
-    Random.weighted ( 50, True ) [ ( 50, False ) ]
+makeRandomGrid : ( Int, Int ) -> Random.Generator Grid
+makeRandomGrid ( xCount, yCount ) =
+    Random.list yCount
+        (Random.list xCount
+            (Random.uniform Alive [ Dead ])
+        )
 
 
-intialGrid : Grid
-intialGrid =
-    [ [ True, True, False, False ]
-    , [ False, True, True, False ]
-    , [ True, True, False, True ]
-    , [ True, True, True, True ]
-    ]
+initialGrid : Grid
+initialGrid =
+    [ [] ]
+
+
+initialSize : ( Int, Int )
+initialSize =
+    ( 48, 48 )
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { grid = intialGrid
-      , newBool = False
+    ( { grid = initialGrid
+      , size = initialSize
       }
-    , Random.generate NewBool randomBool
+    , Random.generate NewRandomGrid (makeRandomGrid initialSize)
     )
 
 
@@ -56,14 +65,14 @@ init =
 
 type Msg
     = NoOp
-    | NewBool Bool
+    | NewRandomGrid Grid
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NewBool newBool ->
-            ( { model | newBool = newBool }, Cmd.none )
+        NewRandomGrid newGrid ->
+            ( { model | grid = newGrid }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -76,17 +85,12 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
-        boolString =
-            if model.newBool then
-                "True"
-
-            else
-                "False"
+        _ =
+            Debug.log "GRID: " model.grid
     in
     div []
         [ img [ src "/logo.svg" ] []
         , h1 [] [ text "Your Elm App is working!" ]
-        , h1 [] [ text boolString ]
         ]
 
 
