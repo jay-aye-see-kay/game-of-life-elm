@@ -4,6 +4,7 @@ import Browser
 import Html exposing (Html, div, h1, img, text)
 import Html.Attributes exposing (src)
 import Random
+import SvgGrid exposing (CellState(..), Grid, testSvg)
 
 
 
@@ -15,15 +16,6 @@ import Random
 -- I'm trying to make random numbers work / understand them, I I'm trying to generate one bool and print it to screen (then I can move onto generating a whole grid of random numbers). I just can't print it to the display... if guess I just have to use a ternary becasue there's not String.fromBool
 --
 ---- MODEL ----
-
-
-type CellState
-    = Alive
-    | Dead
-
-
-type alias Grid =
-    List (List CellState)
 
 
 type alias Model =
@@ -91,6 +83,7 @@ view model =
     div []
         [ img [ src "/logo.svg" ] []
         , h1 [] [ text "Your Elm App is working!" ]
+        , testSvg model.grid
         ]
 
 
