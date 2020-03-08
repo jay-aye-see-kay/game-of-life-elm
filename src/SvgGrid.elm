@@ -2,77 +2,58 @@ module SvgGrid exposing (..)
 
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Types exposing (CellState(..), Grid, Row)
 
 
-
--- FIXME CellState, Row, and Grid should probably be in their own file, but
--- need to be here to prevent a circular import (for now)
-
-
-type CellState
-    = Alive
-    | Dead
-
-
-type alias Row =
-    List CellState
-
-
-type alias Grid =
-    List (List CellState)
-
-
-makeRow : Row -> Svg msg
-makeRow row =
+makeRow : Row -> Int -> List (Svg msg)
+makeRow row rowCount =
     let
-        getCellState : CellState -> String
-        getCellState cell =
-            case cell of
-                Alive ->
-                    "Alive"
+        cellWidth : String
+        cellWidth =
+            String.fromFloat (100 / toFloat (List.length row))
 
-                Dead ->
-                    "Dead"
+        cellXPosition : Int -> String
+        cellXPosition i =
+            String.fromFloat (toFloat i * 100 / toFloat (List.length row))
+
+        rowYPosition : String
+        rowYPosition =
+            String.fromFloat (toFloat rowCount * 100 / toFloat (List.length row))
+
+        cellFill : CellState -> String
+        cellFill cell =
+            if cell == Alive then
+                "gray"
+
+            else
+                "white"
 
         mapFn : Int -> CellState -> Svg msg
         mapFn i cell =
-            rect [] [ text (getCellState cell) ]
+            rect
+                [ x (cellXPosition i)
+                , y rowYPosition
+                , width cellWidth
+                , height cellWidth
+                , fill (cellFill cell)
+                ]
+                []
     in
-    node "rect" [] (List.indexedMap mapFn row)
+    List.indexedMap mapFn row
 
 
-makeGrid : Grid -> Svg msg
+makeGrid : Grid -> List (Svg msg)
 makeGrid grid =
     let
-        mapFn : Int -> Row -> Svg msg
+        mapFn : Int -> Row -> List (Svg msg)
         mapFn i row =
-            makeRow row
+            makeRow row i
     in
-    node "rect" [] (List.indexedMap mapFn grid)
+    List.concat (List.indexedMap mapFn grid)
 
 
-testSvg : Grid -> Svg msg
-testSvg grid =
-    let
-        xCount =
-            List.length grid
-
-        yCount =
-            List.length
-                (Maybe.withDefault [] (List.head grid))
-
-        blockWidth =
-            toFloat xCount / 100
-
-        blockHeight =
-            toFloat yCount / 100
-
-        _ =
-            Debug.log "makeRow" (makeRow [ Alive, Dead ])
-    in
+drawSvg : Grid -> Svg msg
+drawSvg grid =
     svg
         [ viewBox "0 0 100 100" ]
-        [ rect
-            []
-            [ makeGrid grid ]
-        ]
+        (makeGrid grid)

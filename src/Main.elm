@@ -4,7 +4,8 @@ import Browser
 import Html exposing (Html, div, h1, img, text)
 import Html.Attributes exposing (src)
 import Random
-import SvgGrid exposing (CellState(..), Grid, testSvg)
+import SvgGrid exposing (drawSvg)
+import Types exposing (CellState(..), Grid, Row)
 
 
 
@@ -76,15 +77,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    let
-        _ =
-            Debug.log "GRID: " model.grid
-    in
-    div []
-        [ img [ src "/logo.svg" ] []
-        , h1 [] [ text "Your Elm App is working!" ]
-        , testSvg model.grid
-        ]
+    div [] [ drawSvg model.grid ]
 
 
 
