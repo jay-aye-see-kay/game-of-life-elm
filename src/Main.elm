@@ -2,8 +2,9 @@ module Main exposing (..)
 
 import Array
 import Browser
-import Html exposing (Html, div, h1, img, text)
-import Html.Attributes exposing (src)
+import Html exposing (Html, button, div, input, text)
+import Html.Attributes exposing (class, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Random
 import SvgGrid exposing (drawSvg)
 import Time
@@ -23,6 +24,8 @@ type alias Model =
     { grid : Grid
     , size : ( Int, Int )
     , interval : Float
+    , running : Bool
+    , stepCount : Int
     }
 
 
@@ -52,7 +55,9 @@ init =
     in
     ( { grid = Array.repeat xSize (Array.repeat ySize Dead)
       , size = initialSize
-      , interval = 100
+      , interval = 1000
+      , running = False
+      , stepCount = 0
       }
     , Random.generate NewRandomGrid (makeRandomGrid initialSize)
     )
@@ -142,16 +147,42 @@ makeNextGrid prevGrid =
 type Msg
     = NewRandomGrid (List (List CellState))
     | Tick Time.Posix
+    | ToggleRunning
+    | UpdateInterval String
+    | Restart
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Restart ->
+            ( model, Random.generate NewRandomGrid (makeRandomGrid initialSize) )
+
         NewRandomGrid newGrid ->
-            ( { model | grid = gridToArray newGrid }, Cmd.none )
+            ( { model
+                | grid = gridToArray newGrid
+                , stepCount = 0
+              }
+            , Cmd.none
+            )
 
         Tick _ ->
-            ( { model | grid = makeNextGrid model.grid }, Cmd.none )
+            if model.running then
+                ( { model
+                    | grid = makeNextGrid model.grid
+                    , stepCount = model.stepCount + 1
+                  }
+                , Cmd.none
+                )
+
+            else
+                ( model, Cmd.none )
+
+        ToggleRunning ->
+            ( { model | running = not model.running }, Cmd.none )
+
+        UpdateInterval newInterval ->
+            ( { model | interval = Maybe.withDefault 0 (String.toFloat newInterval) }, Cmd.none )
 
 
 
@@ -160,7 +191,29 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [] [ drawSvg model.grid ]
+    let
+        buttonText =
+            if model.running then
+                "Stop"
+
+            else
+                "Start"
+    in
+    div []
+        [ div [ class "top-container" ]
+            [ button [ onClick Restart ] [ text "Restart" ]
+            , button [ onClick ToggleRunning ] [ text buttonText ]
+            , text (String.fromInt model.stepCount)
+            , text "Interval (ms): "
+            , input
+                [ type_ "number"
+                , value (String.fromFloat model.interval)
+                , onInput UpdateInterval
+                ]
+                []
+            ]
+        , drawSvg model.grid
+        ]
 
 
 
