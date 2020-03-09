@@ -1,68 +1,50 @@
 module Grid exposing (..)
 
-import Array
 
-
-type CellState
-    = Alive
-    | Dead
-
-
-type alias Row =
-    Array.Array CellState
-
-
-type alias Grid =
-    Array.Array (Array.Array CellState)
-
-
-type alias Size =
+type alias Coord =
     ( Int, Int )
 
 
-isAlive : Int -> Int -> Grid -> CellState
-isAlive xPos yPos grid =
+type alias Grid =
+    { size : Coord
+    , livingList : List Coord
+    }
+
+
+isAlive : Coord -> Grid -> Bool
+isAlive ( xPos, yPos ) grid =
     let
-        rowAbove =
-            Maybe.withDefault Array.empty (Array.get (yPos - 1) grid)
-
-        row =
-            Maybe.withDefault Array.empty (Array.get yPos grid)
-
-        rowBelow =
-            Maybe.withDefault Array.empty (Array.get (yPos + 1) grid)
-
         cellTL =
-            Maybe.withDefault Dead (Array.get (xPos - 1) rowAbove)
+            List.member ( xPos - 1, yPos - 1 ) grid.livingList
 
         cellTM =
-            Maybe.withDefault Dead (Array.get xPos rowAbove)
+            List.member ( xPos, yPos - 1 ) grid.livingList
 
         cellTR =
-            Maybe.withDefault Dead (Array.get (xPos + 1) rowAbove)
+            List.member ( xPos + 1, yPos - 1 ) grid.livingList
 
         cellML =
-            Maybe.withDefault Dead (Array.get (xPos - 1) row)
+            List.member ( xPos - 1, yPos ) grid.livingList
 
         ownState =
-            Maybe.withDefault Dead (Array.get xPos row)
+            List.member ( xPos, yPos ) grid.livingList
 
         cellMR =
-            Maybe.withDefault Dead (Array.get (xPos + 1) row)
+            List.member ( xPos + 1, yPos ) grid.livingList
 
         cellBL =
-            Maybe.withDefault Dead (Array.get (xPos - 1) rowBelow)
+            List.member ( xPos - 1, yPos + 1 ) grid.livingList
 
         cellBM =
-            Maybe.withDefault Dead (Array.get xPos rowBelow)
+            List.member ( xPos, yPos + 1 ) grid.livingList
 
         cellBR =
-            Maybe.withDefault Dead (Array.get (xPos + 1) rowBelow)
+            List.member ( xPos + 1, yPos + 1 ) grid.livingList
 
         livingNeighborCount =
             List.foldl
                 (\cell sum ->
-                    if cell == Alive then
+                    if cell then
                         sum + 1
 
                     else
@@ -72,39 +54,47 @@ isAlive xPos yPos grid =
                 [ cellTL, cellTM, cellTR, cellML, cellMR, cellBL, cellBM, cellBR ]
     in
     if livingNeighborCount == 3 then
-        Alive
+        True
 
-    else if livingNeighborCount == 2 && ownState == Alive then
-        Alive
+    else if livingNeighborCount == 2 && ownState then
+        True
 
     else
-        Dead
+        False
+
+
+makeNextLivingList : Coord -> Grid -> List Coord -> List Coord
+makeNextLivingList position grid livingList =
+    let
+        ( xSize, ySize ) =
+            grid.size
+
+        ( xPos, yPos ) =
+            position
+
+        isPosAlive =
+            isAlive position grid
+
+        newLivingList =
+            if isPosAlive then
+                position :: livingList
+
+            else
+                livingList
+    in
+    if xPos > xSize && yPos > ySize then
+        -- we're at the end return livingList
+        livingList
+
+    else if xPos > xSize then
+        -- we're at y edge, reset x and increment y
+        makeNextLivingList ( 0, yPos + 1 ) grid newLivingList
+
+    else
+        -- we're not at the edge, increment x and call
+        makeNextLivingList ( xPos + 1, yPos ) grid newLivingList
 
 
 makeNextGrid : Grid -> Grid
-makeNextGrid prevGrid =
-    let
-        ( xSize, ySize ) =
-            getSize prevGrid
-
-        makeNextRow : Int -> Row
-        makeNextRow yPos =
-            Array.initialize xSize (\xPos -> isAlive xPos yPos prevGrid)
-    in
-    Array.initialize ySize (\yPos -> makeNextRow yPos)
-
-
-getSize : Grid -> Size
-getSize grid =
-    ( Array.length grid
-    , Array.length (Maybe.withDefault Array.empty (Array.get 0 grid))
-    )
-
-
-incrementSize : Size -> Grid -> Size
-incrementSize ( xChange, yChange ) grid =
-    let
-        ( xSize, ySize ) =
-            getSize grid
-    in
-    ( xSize + xChange, ySize + yChange )
+makeNextGrid grid =
+    { grid | livingList = makeNextLivingList ( 0, 0 ) grid [] }
