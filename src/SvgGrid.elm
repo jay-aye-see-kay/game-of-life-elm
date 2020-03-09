@@ -1,9 +1,9 @@
 module SvgGrid exposing (..)
 
 import Array
+import Grid exposing (CellState(..), Grid, Row)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
-import Types exposing (CellState(..), Grid, Row)
 
 
 makeRow : Row -> Int -> List (Svg msg)

@@ -1,4 +1,4 @@
-module Types exposing (..)
+module Grid exposing (..)
 
 import Array
 

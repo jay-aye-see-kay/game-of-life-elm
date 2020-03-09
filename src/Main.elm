@@ -2,13 +2,13 @@ module Main exposing (..)
 
 import Array
 import Browser
+import Grid exposing (CellState(..), Grid, Row)
 import Html exposing (Html, button, div, input, label, text)
 import Html.Attributes exposing (class, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Random
 import SvgGrid exposing (drawSvg)
 import Time
-import Types exposing (CellState(..), Grid, Row)
 
 
 
