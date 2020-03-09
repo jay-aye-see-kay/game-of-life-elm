@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Array
 import Browser
-import Html exposing (Html, button, div, input, text)
+import Html exposing (Html, button, div, input, label, text)
 import Html.Attributes exposing (class, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Random
@@ -55,7 +55,7 @@ init =
     in
     ( { grid = Array.repeat xSize (Array.repeat ySize Dead)
       , size = initialSize
-      , interval = 1000
+      , interval = 100
       , running = False
       , stepCount = 0
       }
@@ -149,6 +149,7 @@ type Msg
     | Tick Time.Posix
     | ToggleRunning
     | UpdateInterval String
+    | UpdateSize String
     | Restart
 
 
@@ -184,6 +185,15 @@ update msg model =
         UpdateInterval newInterval ->
             ( { model | interval = Maybe.withDefault 0 (String.toFloat newInterval) }, Cmd.none )
 
+        UpdateSize newSizeString ->
+            let
+                newSize =
+                    ( Maybe.withDefault 0 (String.toInt newSizeString)
+                    , Maybe.withDefault 0 (String.toInt newSizeString)
+                    )
+            in
+            ( { model | size = newSize }, Random.generate NewRandomGrid (makeRandomGrid newSize) )
+
 
 
 ---- VIEW ----
@@ -200,17 +210,34 @@ view model =
                 "Start"
     in
     div []
-        [ div [ class "top-container" ]
-            [ button [ onClick Restart ] [ text "Restart" ]
-            , button [ onClick ToggleRunning ] [ text buttonText ]
-            , text (String.fromInt model.stepCount)
-            , text "Interval (ms): "
-            , input
-                [ type_ "number"
-                , value (String.fromFloat model.interval)
-                , onInput UpdateInterval
+        [ div [ class "controls-container" ]
+            [ div [ class "controls-row" ]
+                [ label []
+                    [ text "Size: "
+                    , input
+                        [ type_ "text"
+                        , value (String.fromInt (Tuple.first model.size))
+                        , onInput UpdateSize
+                        ]
+                        []
+                    ]
                 ]
-                []
+            , div [ class "controls-row" ]
+                [ label []
+                    [ text "Interval (ms): "
+                    , input
+                        [ type_ "text"
+                        , value (String.fromFloat model.interval)
+                        , onInput UpdateInterval
+                        ]
+                        []
+                    ]
+                ]
+            , div [ class "controls-row" ]
+                [ button [ onClick Restart ] [ text "Restart" ]
+                , button [ onClick ToggleRunning ] [ text buttonText ]
+                ]
+            , text ("Step Count :" ++ String.fromInt model.stepCount)
             ]
         , drawSvg model.grid
         ]
