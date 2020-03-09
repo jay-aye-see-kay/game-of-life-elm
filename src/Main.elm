@@ -23,7 +23,7 @@ import Types exposing (CellState(..), Grid, Row)
 type alias Model =
     { grid : Grid
     , size : ( Int, Int )
-    , interval : Float
+    , interval : Int
     , running : Bool
     , stepCount : Int
     }
@@ -149,7 +149,7 @@ type Msg
     | Tick Time.Posix
     | ToggleRunning
     | UpdateInterval String
-    | IncrementInterval Float
+    | IncrementInterval Int
     | UpdateSize String
     | IncrementSize Int
     | Restart
@@ -187,7 +187,7 @@ update msg model =
         UpdateInterval newIntervalString ->
             let
                 newInterval =
-                    Maybe.withDefault 0 (String.toFloat newIntervalString)
+                    Maybe.withDefault 0 (String.toInt newIntervalString)
 
                 safeNewInterval =
                     if newInterval < 16 then
@@ -235,6 +235,36 @@ update msg model =
 ---- VIEW ----
 
 
+intControlView : String -> Int -> (String -> Msg) -> List Int -> (Int -> Msg) -> Html Msg
+intControlView controlLabel controlValue onInputMsg incrementers incrementerMsg =
+    let
+        negativeIncrementers =
+            List.map
+                (\inc -> button [ onClick (incrementerMsg inc) ] [ text (String.fromInt inc) ])
+                (List.filter (\inc -> inc < 0) incrementers)
+
+        positiveIncrementers =
+            List.map
+                (\inc -> button [ onClick (incrementerMsg inc) ] [ text ("+" ++ String.fromInt inc) ])
+                (List.filter (\inc -> inc > 0) incrementers)
+
+        labelHtml =
+            [ label
+                []
+                [ text controlLabel
+                , input
+                    [ type_ "text"
+                    , value (String.fromInt controlValue)
+                    , onInput onInputMsg
+                    ]
+                    []
+                ]
+            ]
+    in
+    div [ class "controls-row" ]
+        (negativeIncrementers ++ labelHtml ++ positiveIncrementers)
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -247,38 +277,8 @@ view model =
     in
     div []
         [ div [ class "controls-container" ]
-            [ div [ class "controls-row" ]
-                [ label []
-                    [ text "Size: "
-                    , input
-                        [ type_ "text"
-                        , value (String.fromInt (Tuple.first model.size))
-                        , onInput UpdateSize
-                        ]
-                        []
-                    ]
-                , button [ onClick (IncrementSize -10) ] [ text "-10" ]
-                , button [ onClick (IncrementSize -1) ] [ text "-1" ]
-                , button [ onClick (IncrementSize 1) ] [ text "+1" ]
-                , button [ onClick (IncrementSize 10) ] [ text "+10" ]
-                ]
-            , div [ class "controls-row" ]
-                [ label []
-                    [ text "Interval (ms): "
-                    , input
-                        [ type_ "text"
-                        , value (String.fromFloat model.interval)
-                        , onInput UpdateInterval
-                        ]
-                        []
-                    ]
-                , button [ onClick (IncrementInterval -100) ] [ text "-100" ]
-                , button [ onClick (IncrementInterval -10) ] [ text "-10" ]
-                , button [ onClick (IncrementInterval -1) ] [ text "-1" ]
-                , button [ onClick (IncrementInterval 1) ] [ text "+1" ]
-                , button [ onClick (IncrementInterval 10) ] [ text "+10" ]
-                , button [ onClick (IncrementInterval 100) ] [ text "+100" ]
-                ]
+            [ intControlView "Size: " (Tuple.first model.size) UpdateSize [ -10, -1, 1, 10 ] IncrementSize
+            , intControlView "Interval (ms): " model.interval UpdateInterval [ -100, -10, 10, 100 ] IncrementInterval
             , div [ class "controls-row" ]
                 [ button [ onClick Restart ] [ text "Restart" ]
                 , button [ onClick ToggleRunning ] [ text buttonText ]
@@ -295,7 +295,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every model.interval Tick
+    Time.every (toFloat model.interval) Tick
 
 
 

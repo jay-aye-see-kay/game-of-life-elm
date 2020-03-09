@@ -18,4 +18,18 @@ body {
 
 .controls-row {
   padding: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.controls-row input {
+  width: 40px;
+}
+
+.controls-row label {
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
