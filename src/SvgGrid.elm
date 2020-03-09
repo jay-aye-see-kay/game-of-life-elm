@@ -1,5 +1,6 @@
 module SvgGrid exposing (..)
 
+import Array
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Types exposing (CellState(..), Grid, Row)
@@ -10,15 +11,15 @@ makeRow row rowCount =
     let
         cellWidth : String
         cellWidth =
-            String.fromFloat (100 / toFloat (List.length row))
+            String.fromFloat (100 / toFloat (Array.length row))
 
         cellXPosition : Int -> String
         cellXPosition i =
-            String.fromFloat (toFloat i * 100 / toFloat (List.length row))
+            String.fromFloat (toFloat i * 100 / toFloat (Array.length row))
 
         rowYPosition : String
         rowYPosition =
-            String.fromFloat (toFloat rowCount * 100 / toFloat (List.length row))
+            String.fromFloat (toFloat rowCount * 100 / toFloat (Array.length row))
 
         cellFill : CellState -> String
         cellFill cell =
@@ -39,7 +40,7 @@ makeRow row rowCount =
                 ]
                 []
     in
-    List.indexedMap mapFn row
+    Array.toList (Array.indexedMap mapFn row)
 
 
 makeGrid : Grid -> List (Svg msg)
@@ -49,7 +50,7 @@ makeGrid grid =
         mapFn i row =
             makeRow row i
     in
-    List.concat (List.indexedMap mapFn grid)
+    List.concat (Array.toList (Array.indexedMap mapFn grid))
 
 
 drawSvg : Grid -> Svg msg

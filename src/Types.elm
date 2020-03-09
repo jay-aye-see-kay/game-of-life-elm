@@ -1,5 +1,7 @@
 module Types exposing (..)
 
+import Array
+
 
 type CellState
     = Alive
@@ -7,8 +9,8 @@ type CellState
 
 
 type alias Row =
-    List CellState
+    Array.Array CellState
 
 
 type alias Grid =
-    List (List CellState)
+    Array.Array (Array.Array CellState)
