@@ -149,7 +149,9 @@ type Msg
     | Tick Time.Posix
     | ToggleRunning
     | UpdateInterval String
+    | IncrementInterval Float
     | UpdateSize String
+    | IncrementSize Int
     | Restart
 
 
@@ -157,7 +159,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Restart ->
-            ( model, Random.generate NewRandomGrid (makeRandomGrid initialSize) )
+            ( model, Random.generate NewRandomGrid (makeRandomGrid model.size) )
 
         NewRandomGrid newGrid ->
             ( { model
@@ -182,14 +184,48 @@ update msg model =
         ToggleRunning ->
             ( { model | running = not model.running }, Cmd.none )
 
-        UpdateInterval newInterval ->
-            ( { model | interval = Maybe.withDefault 0 (String.toFloat newInterval) }, Cmd.none )
+        UpdateInterval newIntervalString ->
+            let
+                newInterval =
+                    Maybe.withDefault 0 (String.toFloat newIntervalString)
+
+                safeNewInterval =
+                    if newInterval < 16 then
+                        16
+
+                    else
+                        newInterval
+            in
+            ( { model | interval = safeNewInterval }, Cmd.none )
+
+        IncrementInterval intervalChange ->
+            let
+                newInterval =
+                    model.interval + intervalChange
+
+                safeNewInterval =
+                    if newInterval < 16 then
+                        16
+
+                    else
+                        newInterval
+            in
+            ( { model | interval = safeNewInterval }, Cmd.none )
 
         UpdateSize newSizeString ->
             let
                 newSize =
                     ( Maybe.withDefault 0 (String.toInt newSizeString)
                     , Maybe.withDefault 0 (String.toInt newSizeString)
+                    )
+            in
+            ( { model | size = newSize }, Random.generate NewRandomGrid (makeRandomGrid newSize) )
+
+        IncrementSize sizeChange ->
+            let
+                newSize =
+                    ( Tuple.first model.size + sizeChange
+                    , Tuple.second model.size + sizeChange
                     )
             in
             ( { model | size = newSize }, Random.generate NewRandomGrid (makeRandomGrid newSize) )
@@ -221,6 +257,10 @@ view model =
                         ]
                         []
                     ]
+                , button [ onClick (IncrementSize -10) ] [ text "-10" ]
+                , button [ onClick (IncrementSize -1) ] [ text "-1" ]
+                , button [ onClick (IncrementSize 1) ] [ text "+1" ]
+                , button [ onClick (IncrementSize 10) ] [ text "+10" ]
                 ]
             , div [ class "controls-row" ]
                 [ label []
@@ -232,6 +272,12 @@ view model =
                         ]
                         []
                     ]
+                , button [ onClick (IncrementInterval -100) ] [ text "-100" ]
+                , button [ onClick (IncrementInterval -10) ] [ text "-10" ]
+                , button [ onClick (IncrementInterval -1) ] [ text "-1" ]
+                , button [ onClick (IncrementInterval 1) ] [ text "+1" ]
+                , button [ onClick (IncrementInterval 10) ] [ text "+10" ]
+                , button [ onClick (IncrementInterval 100) ] [ text "+100" ]
                 ]
             , div [ class "controls-row" ]
                 [ button [ onClick Restart ] [ text "Restart" ]
