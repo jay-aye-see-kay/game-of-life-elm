@@ -5,6 +5,7 @@ import Html exposing (Html, div, h1, img, text)
 import Html.Attributes exposing (src)
 import Random
 import SvgGrid exposing (drawSvg)
+import Time
 import Types exposing (CellState(..), Grid, Row)
 
 
@@ -22,6 +23,7 @@ import Types exposing (CellState(..), Grid, Row)
 type alias Model =
     { grid : Grid
     , size : ( Int, Int )
+    , interval : Float
     }
 
 
@@ -40,13 +42,14 @@ initialGrid =
 
 initialSize : ( Int, Int )
 initialSize =
-    ( 48, 48 )
+    ( 5, 5 )
 
 
 init : ( Model, Cmd Msg )
 init =
     ( { grid = initialGrid
       , size = initialSize
+      , interval = 1000
       }
     , Random.generate NewRandomGrid (makeRandomGrid initialSize)
     )
@@ -56,9 +59,14 @@ init =
 ---- UPDATE ----
 
 
+makeNextGrid : Grid -> Grid
+makeNextGrid oldGrid =
+    oldGrid
+
+
 type Msg
-    = NoOp
-    | NewRandomGrid Grid
+    = NewRandomGrid Grid
+    | Tick Time.Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,8 +75,8 @@ update msg model =
         NewRandomGrid newGrid ->
             ( { model | grid = newGrid }, Cmd.none )
 
-        _ ->
-            ( model, Cmd.none )
+        Tick _ ->
+            ( { model | grid = makeNextGrid model.grid }, Cmd.none )
 
 
 
@@ -81,6 +89,15 @@ view model =
 
 
 
+---- SUBSCRIPTIONS ----
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Time.every model.interval Tick
+
+
+
 ---- PROGRAM ----
 
 
@@ -90,5 +107,5 @@ main =
         { view = view
         , init = \_ -> init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
