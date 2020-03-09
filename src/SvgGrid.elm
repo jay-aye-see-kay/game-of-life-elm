@@ -1,60 +1,67 @@
 module SvgGrid exposing (..)
 
-import Array
-import Grid exposing (CellState(..), Grid, Row)
+import Grid exposing (Coord, Grid)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 
 
-makeRow : Row -> Int -> List (Svg msg)
-makeRow row rowCount =
+makeSvgGrid : Coord -> Grid -> List (Svg msg) -> List (Svg msg)
+makeSvgGrid position grid svgElements =
     let
+        ( xSize, ySize ) =
+            grid.size
+
+        ( xPos, yPos ) =
+            position
+
         cellWidth : String
         cellWidth =
-            String.fromFloat (100 / toFloat (Array.length row))
+            String.fromFloat (100 / toFloat xSize)
 
-        cellXPosition : Int -> String
-        cellXPosition i =
-            String.fromFloat (toFloat i * 100 / toFloat (Array.length row))
+        cellXPosition : String
+        cellXPosition =
+            String.fromFloat (toFloat xPos * 100 / toFloat xSize)
 
-        rowYPosition : String
-        rowYPosition =
-            String.fromFloat (toFloat rowCount * 100 / toFloat (Array.length row))
+        cellYPosition : String
+        cellYPosition =
+            String.fromFloat (toFloat yPos * 100 / toFloat ySize)
 
-        cellFill : CellState -> String
-        cellFill cell =
-            if cell == Alive then
+        cellFill : String
+        cellFill =
+            if Grid.isAlive position grid then
                 "gray"
 
             else
                 "white"
 
-        mapFn : Int -> CellState -> Svg msg
-        mapFn i cell =
+        newElement =
             rect
-                [ x (cellXPosition i)
-                , y rowYPosition
+                [ x cellXPosition
+                , y cellYPosition
                 , width cellWidth
                 , height cellWidth
-                , fill (cellFill cell)
+                , fill cellFill
                 ]
                 []
-    in
-    Array.toList (Array.indexedMap mapFn row)
 
-
-makeGrid : Grid -> List (Svg msg)
-makeGrid grid =
-    let
-        mapFn : Int -> Row -> List (Svg msg)
-        mapFn i row =
-            makeRow row i
+        newSvgElements =
+            newElement :: svgElements
     in
-    List.concat (Array.toList (Array.indexedMap mapFn grid))
+    if xPos > xSize && yPos > ySize then
+        -- we're at the end return livingList
+        svgElements
+
+    else if xPos > xSize then
+        -- we're at y edge, reset x and increment y
+        makeSvgGrid ( 0, yPos + 1 ) grid newSvgElements
+
+    else
+        -- we're not at the edge, increment x and call
+        makeSvgGrid ( xPos + 1, yPos ) grid newSvgElements
 
 
 drawSvg : Grid -> Svg msg
 drawSvg grid =
     svg
         [ viewBox "0 0 100 100" ]
-        (makeGrid grid)
+        (makeSvgGrid ( 0, 0 ) grid [])

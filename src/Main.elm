@@ -1,8 +1,7 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Array
 import Browser
-import Grid exposing (CellState(..), Grid, Row)
+import Grid exposing (Coord, Grid)
 import Html exposing (Html, button, div, input, label, text)
 import Html.Attributes exposing (class, type_, value)
 import Html.Events exposing (onClick, onInput)
@@ -12,54 +11,49 @@ import Time
 
 
 
--- 1. Any live cell with two or three neighbors survives.
--- 2. Any dead cell with three live neighbors becomes a live cell.
--- 3. All other live cells die in the next generation.
--- 4. All other dead cells stay dead.
---
 ---- MODEL ----
 
 
 type alias Model =
     { grid : Grid
-    , size : ( Int, Int )
     , interval : Int
     , running : Bool
     , stepCount : Int
     }
 
 
-makeRandomGrid : ( Int, Int ) -> Random.Generator (List (List CellState))
-makeRandomGrid ( xCount, yCount ) =
-    Random.list yCount
-        (Random.list xCount
-            (Random.uniform Alive [ Dead ])
-        )
+makeRandomLivingList : Coord -> Random.Generator (List Coord)
+makeRandomLivingList ( xMax, yMax ) =
+    let
+        count =
+            -- 50% of area
+            xMax * yMax // 2
+
+        xGenerator =
+            Random.int 0 xMax
+
+        yGenerator =
+            Random.int 0 yMax
+
+        posGenerator =
+            Random.pair xGenerator yGenerator
+    in
+    Random.list count posGenerator
 
 
-gridToArray : List (List CellState) -> Grid
-gridToArray list =
-    Array.map (\row -> Array.fromList row) (Array.fromList list)
-
-
-initialSize : ( Int, Int )
+initialSize : Coord
 initialSize =
-    ( 48, 48 )
+    ( 4, 4 )
 
 
 init : ( Model, Cmd Msg )
 init =
-    let
-        ( xSize, ySize ) =
-            initialSize
-    in
-    ( { grid = Array.repeat xSize (Array.repeat ySize Dead)
-      , size = initialSize
-      , interval = 100
+    ( { grid = Grid initialSize []
+      , interval = 1000
       , running = False
       , stepCount = 0
       }
-    , Random.generate NewRandomGrid (makeRandomGrid initialSize)
+    , Random.generate NewRandomGrid (makeRandomLivingList initialSize)
     )
 
 
@@ -68,7 +62,7 @@ init =
 
 
 type Msg
-    = NewRandomGrid (List (List CellState))
+    = NewRandomGrid (List Coord)
     | Tick Time.Posix
     | ToggleRunning
     | UpdateInterval String
@@ -82,11 +76,13 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Restart ->
-            ( model, Random.generate NewRandomGrid (makeRandomGrid model.size) )
+            ( model
+            , Random.generate NewRandomGrid (makeRandomLivingList model.grid.size)
+            )
 
-        NewRandomGrid newGrid ->
+        NewRandomGrid newLivingList ->
             ( { model
-                | grid = gridToArray newGrid
+                | grid = Grid model.grid.size newLivingList
                 , stepCount = 0
               }
             , Cmd.none
@@ -105,7 +101,9 @@ update msg model =
                 ( model, Cmd.none )
 
         ToggleRunning ->
-            ( { model | running = not model.running }, Cmd.none )
+            ( { model | running = not model.running }
+            , Cmd.none
+            )
 
         UpdateInterval newIntervalString ->
             let
@@ -141,15 +139,22 @@ update msg model =
                     ( Maybe.withDefault 0 (String.toInt newSizeString)
                     , Maybe.withDefault 0 (String.toInt newSizeString)
                     )
+
+                newGrid =
+                    Grid newSize model.grid.livingList
             in
-            ( { model | size = newSize }, Random.generate NewRandomGrid (makeRandomGrid newSize) )
+            ( { model | grid = newGrid }
+            , Random.generate NewRandomGrid (makeRandomLivingList newSize)
+            )
 
         IncrementSize sizeChange ->
             let
-                newSize =
-                    Grid.incrementSize ( sizeChange, sizeChange ) model.grid
+                newGrid =
+                    Grid.incrementSize model.grid ( sizeChange, sizeChange )
             in
-            ( { model | size = newSize }, Random.generate NewRandomGrid (makeRandomGrid newSize) )
+            ( { model | grid = newGrid }
+            , Random.generate NewRandomGrid (makeRandomLivingList newGrid.size)
+            )
 
 
 
@@ -198,7 +203,7 @@ view model =
     in
     div []
         [ div [ class "controls-container" ]
-            [ intControlView "Size: " (Tuple.first model.size) UpdateSize [ -10, -1, 1, 10 ] IncrementSize
+            [ intControlView "Size: " (Tuple.first model.grid.size) UpdateSize [ -10, -1, 1, 10 ] IncrementSize
             , intControlView "Interval (ms): " model.interval UpdateInterval [ -100, -10, 10, 100 ] IncrementInterval
             , div [ class "controls-row" ]
                 [ button [ onClick Restart ] [ text "Restart" ]

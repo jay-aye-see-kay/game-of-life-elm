@@ -98,3 +98,8 @@ makeNextLivingList position grid livingList =
 makeNextGrid : Grid -> Grid
 makeNextGrid grid =
     { grid | livingList = makeNextLivingList ( 0, 0 ) grid [] }
+
+
+incrementSize : Grid -> Coord -> Grid
+incrementSize grid newSize =
+    { grid | size = newSize }
