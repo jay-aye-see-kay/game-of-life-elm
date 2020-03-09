@@ -1,4 +1,4 @@
-module Grid exposing (CellState(..), Grid, Row, incrementSize, makeNextGrid)
+module Grid exposing (..)
 
 import Array
 
